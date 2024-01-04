@@ -1,0 +1,60 @@
+dataset:
+ - 'features'
+ - 'classified_features'
+
+features:
+  - 'OddP1'
+  - 'RankP1'
+  - 'Rank_dif'
+  - 'H2H'
+  - 'RankP2'
+
+classified_features:
+  - 'OddP1'
+  - 'RankP2'
+  - 'H2H'
+
+training:
+  train_size: 0.90
+  test_size: 0.10 
+  cv: 5  # when using cross-validation there's no need for a validation set
+  class_weights: {1: 1, 0: 3} # assign a higher weight to the least frequent class (0: P2 wins) to make the model pay more attention to it during training
+
+decision-tree:
+  param_grid: {   # Grid search for hyperparameter tuning
+      'criterion': ['gini', 'entropy'],
+      'max_depth': [null, 3, 5, 7, 9],
+      'min_samples_split': [2, 5, 10, 15],
+      'min_samples_leaf': [1, 2, 4, 6]
+  }
+
+# regression model configuration
+reg:
+  training:
+    learning_rate: 0.01
+    number_of_neurons: 12
+    activation: "sigmoid"
+    optimizer: "adam"
+    loss: "mean_squared_error"
+    epochs: 50
+    batch_size: 10
+    verbose: 1
+  evaluation_metric: mean_squared_error
+  threshold: 0.75
+
+# classification model configuration
+random-forest:
+  random_state: 42
+  param_grid: {
+    'n_estimators': [40, 60, 80], 
+    'max_depth': [null, 5, 10],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4]
+  }
+  best-params: {
+    'max_depth': 5, 
+    'min_samples_leaf': 2, 
+    'min_samples_split': 2, 
+    'n_estimators': 50
+  }
+

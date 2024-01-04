@@ -1,0 +1,17 @@
+# local package
+make_dataset
+build_features
+train_model
+predict_model
+
+# external requirements
+setuptools
+click>=8.1.7
+pyyaml>=6.0.1
+python-dotenv>=0.5.1
+matplotlib>=3.8.2
+pandas>=2.1.4
+scikit-learn>=1.3.2
+seaborn>=0.13.0
+shap
+ipywidgets
