@@ -1,7 +1,7 @@
 """
 
 
-python src/models/train_model.py C:/Users/inesm/projectos/tennis-predictor/data/processed/ C:/Users/inesm/projectos/tennis-predictor/models/
+python src/models/train_model.py C:/Users/inesm/projectos/tennis-predictor/data/processed/features_classified.pkl random-forest
 """
 import click
 import logging
@@ -11,92 +11,122 @@ from make_dataset import load_data
 from make_dataset import save_data
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.ensemble import RandomForestClassifier
 import yaml 
 import numpy as np
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import make_scorer, recall_score
 from datetime import datetime
 import pickle
 from pathlib import Path
 
-with open("C:/Users/inesm/projectos/tennis-predictor/conf/conf.yaml", "r") as config_file:
-    conf = yaml.safe_load(config_file)
+logger = logging.getLogger(__name__)
 
+config_file_path = "C:/Users/inesm/projectos/tennis-predictor/conf/conf.yaml"
 input_filepath = "C:/Users/inesm/projectos/tennis-predictor/data/processed/"
 output_filepath = "C:/Users/inesm/projectos/tennis-predictor/models/"
+        
+with open(config_file_path, "r") as config_file:
+    conf = yaml.safe_load(config_file)
 
 @click.command()
-@click.argument('file_name', type=click.Path(exists=True))
-def main(input_filepath, output_filepath, dataset):
-    """ Build classifier model with optimal hyperparameters for dataset from (../processed) 
-        and save trained model in ../models.
+@click.argument('file_path', type=click.Path(exists=True))
+@click.argument('model', type=click.STRING)
+def main(file_path, model):
+    """ Build and train classifier model.
+        arg: dataset with target and features from (../processed) 
+             training configurations
+             hyperparameters grid (param_grid)
+        return:
+             best hyperparameters (best_params)
     """
-    logger = logging.getLogger(__name__)
     
     # Load data using the load_data function
     logger.info('loading features')
-    dataset = load_data(input_filepath, file_name=dataset)
-    
-    # load auxiliar data to use in the custom profit function
-    aux_dataset = load_data(processed_filepath, file_name='features.pkl')
+    dataset = load_data(input_filepath, file_name=file_path)
     
     # Define training datasets
     y = dataset["winner_is_p1"]    
-    features_names = conf['classified_features']
-    X = dataset[features_names]
     
-    # Create a Random Forest classifier
-    classifier = RandomForestClassifier(
-        class_weight=conf['training']['class_weights'], # assign a higher weight to the least frequent class (0: P2 wins) to make the model pay more attention to it during training
-        random_state=42)
-    
-    classifier, best_params = training(X_train, y_train, X_train_aux['OddP1_y'], X_train_aux['OddP2_y'])
-
-
-    final_X_train_id = X_train_id[features_names]
-    final_X_train = final_X_train_id.drop(['match_id'], axis = 1)
-
-    final_X_test_id = X_test_id[features_names]
-    final_X_test = final_X_test_id.drop(['match_id'], axis = 1)
-    
-    train_data, val_data, test_data, y_train, y_val, y_test = split_data(features, y)
-    
-    # Drop col 'match_id' (only needed for evaluation)
-    X_train = drop_id(train_data)
-    X_val = drop_id(val_data)
-    X_test = drop_id(test_data)
-
-    
-    decision_tree, best_params = DT_training(X_train, y_train)
-    decision_tree, accuracy, report, y_pred, y_test = DT_test(X_train, y_train, X_test, y_test, best_params)
-    
-    results = pd.DataFrame()
-    results['y_pred'] = y_pred
-    results['y_test'] = y_test
-    print(type(X_test_scaled))
-    #results = results.merge(X_test_scaled, left_index=True, right_index=True)
-    results = results.merge(test_data, left_index=True, right_index=True)
-    print(results)
-    #logger.info('saving features')
-    #save_data(results, 'results.csv', output_filepath)
+    if file_path == input_filepath + 'features_classified.pkl':
+        print(input_filepath + 'features_classified.pkl')
+        features_names = conf['classified_features']
+        features_names.extend(['match_id'])
+        X = dataset[features_names]
+    else:
+        features_names = conf['features']
+        features_names.extend(['match_id'])
+        X = dataset[features_names]
         
+    X_train_id, X_test_id, y_train, y_test = split_data(X, y)
+    X_train = X_train_id.drop(['match_id'], axis = 1)
+    X_test = X_test_id.drop(['match_id'], axis = 1)
 
+    # load auxiliar data to use in the custom profit function
+    aux_dataset = load_data(input_filepath, file_name='features.pkl')
+    # add oddP1 and OddP2 to dataset for custom_profit calculations
+    X_train_aux = pd.merge(X_train_id, aux_dataset, on='match_id') 
+    X_test_aux = pd.merge(X_test_id, aux_dataset, on='match_id') 
 
-"""
-Save trained models
+    if model == 'decision-tree':
+            # Create a Random Forest classifier
+        classifier = DecisionTreeClassifier(class_weight=conf['training']['class_weights'],
+                                            random_state=42)
+    elif model == 'random-forest':
+        # Create a Random Forest classifier
+        classifier = RandomForestClassifier(class_weight=conf['training']['class_weights'],
+                                            random_state=42)
+    
+    trained_classifier, best_params = training(X_train, y_train, X_train_aux['OddP1_y'], X_train_aux['OddP2'], classifier, model)
 
-# Serialize the model
-with open('model.pkl', 'wb') as file:
-    pickle.dump(trained_model, file)
+    print(best_params)
+    
+    # Train the model on the training data
+    trained_classifier.fit(X_train, y_train)
+    
+    profit = custom_profit(y_test, trained_classifier.predict(X_test), X_test_aux['OddP1_y'], X_test_aux['OddP2'])
 
-# Deserialize the model
-with open('model.pkl', 'rb') as file:
-    loaded_model = pickle.load(file)
+    if profit > conf["results"]["profit"]:
+        # Save trained_classifier
+        try:
+            joblib.dump(trained_classifier, 'models/random_forest_model.joblib')
+        except:
+            print('cannot save with joblib')
+        try:
+            with open('models/random_forest_model.pkl', 'wb') as model_file:
+                pickle.dump(trained_classifier, model_file)
+        except:
+            print('cannot save with pickle')
+        print('trained classifier saved in /models')
 
-"""
+        # Update the value in conf["results"]["profit"]
+        conf["results"]["profit"] = profit  
+
+        # Write the updated configuration back to the file
+        with open(config_file_path, "w") as config_file:
+            yaml.dump(conf, config_file)
+
+def split_data(X_id, y):
+    # Define size of validation data
+    train_size = float(conf["training"]["train_size"])
+    test_size = conf["training"]["test_size"]
+    cv = conf["training"]["cv"]
+
+    if cv != None: 
+        # Split data into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(X_id, y, test_size=test_size, random_state=42)
+        logger.info(f"Splitting data randomly into a training ({train_size * 100}%) and a testing ({test_size * 100}%) datasets.")
+        return X_train, X_test, y_train, y_test
+    else:
+        # define validation size
+        temp_size = 1 - train_size
+        test_val_ratio = test_size / temp_size
+        
+        # Split data into training, validation and testing sets
+        X_train, X_temp, y_train, y_temp = train_test_split(X_id, y, test_size=temp_size, random_state=42)
+        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=test_val_ratio, random_state=42)
+        logger.info(f"Splitting data randomly into a training ({train_size * 100}%), a validation ({round(1 - train_size - test_size, 2) * 100}%) and a testing ({test_size * 100}%) datasets.")
+        return X_train, X_val, X_test, y_train, y_val, y_test
 
 
 def custom_profit(y, y_pred, Odd_P1, Odd_P2):
@@ -124,7 +154,7 @@ def custom_profit(y, y_pred, Odd_P1, Odd_P2):
     print('profitability: {:.2f}%'.format(profitability))
     return profit.sum()
 
-def training(X, y, OddP1, OddP2):
+def training(X, y, OddP1, OddP2, classifier, model):
 
     # Grid search for hyperparameter tuning
     param_grid = conf[model]['param_grid']
@@ -146,54 +176,7 @@ def training(X, y, OddP1, OddP2):
 
 
 
-def DT_training(X_train, y_train):
-    
-    # Create a decision tree classifier
-    decision_tree = DecisionTreeClassifier(
-        class_weight=conf["decision-tree"]["class_weights"], # assign a higher weight to the least frequent class (0: P2 wins) to make the model pay more attention to it during training
-        random_state=42)
-    
-    # Grid search for hyperparameter tuning
-    param_grid = conf["decision-tree"]["param_grid"]
 
-    # Use recall as the scoring metric
-    scorer = make_scorer(recall_score, pos_label=0)
-    
-    grid_search = GridSearchCV(decision_tree, param_grid, cv=conf["training"]["cv"], scoring=scorer)
-
-    grid_search.fit(X_train, y_train)
-
-    return decision_tree, grid_search.best_params_
-    
-def DT_test(X_train, y_train, X_test, y_test, best_params):
-
-    # Additional parameters (you may have other parameters like class_weight)
-    additional_params = {
-        'class_weight': conf["decision-tree"]["class_weights"],
-        'random_state': 42
-    }
-
-    # Combine best_params and additional_params to create the final parameters
-    final_params = {**best_params, **additional_params}
-
-    # Create a decision tree classifier with the best parameters
-    decision_tree = DecisionTreeClassifier(**final_params)
-    
-    # Train the model on the training data
-    decision_tree.fit(X_train, y_train)
-
-    # Make predictions on the test data
-    y_pred = decision_tree.predict(X_test)
-
-    # Evaluate the model
-    accuracy = accuracy_score(y_test, y_pred)
-    report = classification_report(y_test, y_pred)
-
-    # Print the results
-    print("Accuracy:", accuracy)
-    print("Classification Report:\n", report)
-    
-    return decision_tree, accuracy, report, y_pred, y_test
 
 def permutation_importance():
     
@@ -246,7 +229,6 @@ def write_report(model):
     
 
 
-
 class KNNClassifier:
     def __init__(self, k=3):
         self.k = k
@@ -274,10 +256,6 @@ class KNNClassifier:
         return np.array(predictions)
 
 
- 
-
-
-
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -289,7 +267,5 @@ if __name__ == '__main__':
     # find .env automagically by walking up directories until it's found, then
     # load up the .env entries as environment variables
     #load_dotenv(find_dotenv())
-
+    
     main()
-    
-    
