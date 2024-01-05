@@ -4,10 +4,11 @@ dataset:
 
 features:
   - 'OddP1'
-  - 'RankP1'
-  - 'Rank_dif'
-  - 'H2H'
-  - 'RankP2'
+  - 'Y_B365'
+ # - 'RankP1'
+ # - 'Rank_dif'
+ # - 'H2H'
+ # - 'RankP2'
 
 classified_features:
   - 'OddP1'
@@ -23,9 +24,12 @@ training:
 decision-tree:
   param_grid: {   # Grid search for hyperparameter tuning
       'criterion': ['gini', 'entropy'],
-      'max_depth': [null, 3, 5, 7, 9],
+      'max_depth': [null, 3, 5, 7, 10, 15],
       'min_samples_split': [2, 5, 10, 15],
-      'min_samples_leaf': [1, 2, 4, 6]
+      'min_samples_leaf': [1, 2, 4, 6],
+      'max_features': [null, 'sqrt', 'log2'],
+      'ccp_alpha': [0.0, 0.1, 0.2]
+
   }
 
 # regression model configuration
@@ -58,3 +62,5 @@ random-forest:
     'n_estimators': 50
   }
 
+results:
+  profit: 0
