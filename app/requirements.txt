@@ -1,0 +1,14 @@
+# app
+fastapi
+uvicorn
+toml
+
+# data processing
+pandas
+numpy
+pyspark
+disutils
+
+# visualization
+seaborn
+matplotlib
