@@ -4,6 +4,8 @@
 
 This project aims to provide betting recommendations for tennis matches based on historical match data. By analyzing various features such as player rankings, head-to-head records, surface type, and recent performance, the model predicts the outcome of tennis matches and suggests betting strategies to maximize profit.
 
+The proposed solution addresses a classification problem aimed at determining whether the player with the lowest odd is the winner in a tennis match. It involves building and transforming features from the dataset, selecting the most important features, applying a logistic regression model, optimizing hyperparameters through cross-validation by maximizing the betting profit.
+
 ## Table of Contents
 - [Project Overview](#project-overview)
 - [Data Collection](#data-collection)
@@ -18,6 +20,20 @@ This project aims to provide betting recommendations for tennis matches based on
 The data for this project is sourced from the following locations:
 - [ATP Match Data](https://data.world/tylerudite/atp-match-data)
 - [WTA Match Data](https://data.world/tylerudite/wta-match-data)
+
+### Dataset Description
+The dataset used in this project contains the following structure:
+
+```python
+date: The date of the match (type: datetime64)
+winner: The name of the winning player (type: string)
+loser: The name of the losing player (type: string)
+wrank: The rank of the winning player (type: int64)
+lrank: The rank of the losing player (type: int64)
+b365w: The Bet365 odds for the winning player (type: float64)
+b365l: The Bet365 odds for the losing player (type: float64)
+surface: The surface on which the match was played (type: string)
+```
 
 ## Project Structure
 
