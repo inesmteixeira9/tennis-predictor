@@ -114,7 +114,7 @@ def scatter(df: pd.DataFrame, x: str, y: str, func: str = None, title: str = Non
             x = df[x]
             y = df[y]
 
-        plt.figure(figsize=(12, 4))
+        plt.figure(figsize=(12, 8))
         plt.title(title)
 
         if func == 'linear_reg':
@@ -139,4 +139,4 @@ def scatter(df: pd.DataFrame, x: str, y: str, func: str = None, title: str = Non
         plt.grid()
         plt.show()
     except Exception as e:
-        log.print_log(LogLevel.WARNING,f"An error occurred during scatter plot creation: {e}")
+        log.print_log(LogLevel.ERROR, f"An error occurred during scatter plot creation: {e}")

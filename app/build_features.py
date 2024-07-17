@@ -162,6 +162,45 @@ def add_odd_ratio(df: pd.DataFrame, features: list) -> Tuple[pd.DataFrame, list]
 
     return df, features
 
+def add_h2h(dataset, features):
+    """Add column 'h2h' to df.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing match data.
+        features (list): List to store feature names.
+
+    Returns:
+        Tuple[pd.DataFrame, list]: DataFrame with added odd_ratio column and updated features list.
+    """
+    begin_time = datetime.now()
+
+    log.print_log(LogLevel.INFO, "Adding h2h...")
+
+    # Add feature h2h
+    cumulative_match_counts = {} # Create an empty DataFrame for the combination of winners and losers
+    dataset = dataset.copy()
+    dataset['h2h'] = 0
+
+    # Loop over each combination of winners and losers and save the history between them (H2H)
+    for index, row in dataset.iterrows():
+        winner = row['winner']
+        loser = row['loser']
+        wins_count = cumulative_match_counts.get((winner, loser), 0) + 1
+        losses_count =  cumulative_match_counts.get((loser, winner), 0) + 1
+        H2H = wins_count - losses_count
+        cumulative_match_counts[(winner, loser)] = wins_count
+        # if p1 is the winner
+        if (row['wrank'] == row['rank_p1']):
+            dataset.loc[index, 'h2h'] = H2H
+        else:
+            dataset.loc[index, 'h2h'] = H2H * -1
+
+    features.extend(['h2h'])
+    end_time = datetime.now()
+    log.print_log(LogLevel.INFO, f" -> Added h2h. ({(end_time-begin_time).total_seconds()})")
+
+    return dataset, features
+
 def OHE_surface(df: pd.DataFrame, features: list) -> Tuple[pd.DataFrame, list]:
     """Replace column 'Surface' with one-hot encoded columns.
 
@@ -212,7 +251,7 @@ def winner_is_p1(row: pd.Series) -> int:
         return 0
 
 def add_consecutive_wins_and_losses(df: pd.DataFrame, features: list) -> Tuple[pd.DataFrame, list]:
-    """Calculate the consecutives wins and losses for each player.
+    """Add columns for the consecutives wins and losses for each player.
 
     Args:
         df (pd.DataFrame): DataFrame containing match data.
@@ -268,3 +307,207 @@ def add_consecutive_wins_and_losses(df: pd.DataFrame, features: list) -> Tuple[p
     log.print_log(LogLevel.INFO, f" -> Added consecutives wins and losses. ({(end_time-begin_time).total_seconds()})")
     
     return df, features
+
+
+def add_consecutive_results(df: pd.DataFrame, features: list) -> Tuple[pd.DataFrame, list]:
+    """Add columns for the consecutives results for each couple of players.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing match data.
+        features (list): List to store feature names.
+
+    Returns:
+        Tuple[pd.DataFrame, list]: DataFrame with added consecutive wins/losses columns and updated features list.
+    """
+    begin_time = datetime.now()
+
+    log.print_log(LogLevel.INFO, "Adding consecutives results...")
+
+    df['consecutive_results'] = df['consecutive_wins_p1'] - df['consecutive_wins_p2'] - df['consecutive_losses_p1'] + df['consecutive_losses_p2']
+
+    features.extend(['consecutive_results'])
+    end_time = datetime.now()
+    log.print_log(LogLevel.INFO, f" -> Added consecutives results. ({(end_time-begin_time).total_seconds()})")
+    
+    return df, features
+
+def update_rank_evol_and_df(df, index, rank_evol, date, player_name, rank, player):
+    """Add columns for the ranking evolution.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing match data.
+        index: df index.
+        rank_evol (dict): {'player' : (yyyy-mm-dd, ranking, last_rank_evol)}
+        date (str): matche's date
+        player_name (str)
+        rank (int)
+        player (int): 1 if it's the player with the lowest odd else 2
+    """
+
+    # if player in rank_evol
+    if rank_evol.get(player_name) != None:
+
+        # if date is more recent
+        if pd.to_datetime(date) > pd.to_datetime(rank_evol[player_name][0]):
+
+            # Update df
+            df.at[index, f'rank_evol_p{player}'] = rank_evol[player_name][1] - rank 
+
+            # Update rank_evol
+            rank_evol[player_name] = (date, rank, rank_evol[player_name][1] - rank)
+
+        else:
+            # Update df with last_rank_evol
+            df.at[index, f'rank_evol_p{player}'] = rank_evol[player_name][2] 
+
+            # Update or add new item to rank_evol
+            rank_evol[player_name] = (date, rank, rank_evol[player_name][1] - rank)
+
+    else:
+        # Add new item to rank_evol
+        rank_evol[player_name] = (date, rank, 0)
+
+def add_rank_evolution(df: pd.DataFrame, features: list) -> Tuple[pd.DataFrame, list]:
+    """Apply update_rank_evol_and_df for each player.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing match data.
+        features (list): List to store feature names.
+
+    Returns:
+        Tuple[pd.DataFrame, list]: DataFrame with added consecutive wins/losses columns and updated features list.
+    """
+    begin_time = datetime.now()
+
+    log.print_log(LogLevel.INFO, "Adding ranking evolution...")
+
+    # Initialize dictionary to store player's rankings
+    rank_evol = {}
+
+    # Initialize 'rank_evol' with 0
+    df['rank_evol_p1'] = 0
+    df['rank_evol_p2'] = 0
+
+    # Iterate over rows
+    for index, row in df.iterrows():
+        date = row['date']
+        winner = row['winner']
+        loser = row['loser']
+        wrank = row['wrank']
+        lrank = row['lrank']
+
+        # Update DataFrame with consecutive wins and losses
+        if row['winner_is_p1'] == 1:      
+            update_rank_evol_and_df(df, index, rank_evol, date, winner, wrank, 1)  
+            update_rank_evol_and_df(df, index, rank_evol, date, loser, lrank, 2)  
+        else:  
+            update_rank_evol_and_df(df, index, rank_evol, date, winner, wrank, 2)  
+            update_rank_evol_and_df(df, index, rank_evol, date, loser, lrank, 1) 
+ 
+    # Convert the columns to numeric
+    cols = ['rank_evol_p1', 'rank_evol_p2']
+    for col in cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    features.extend(cols)
+    end_time = datetime.now()
+    log.print_log(LogLevel.INFO, f" -> Added ranking evolution. ({(end_time-begin_time).total_seconds()})")
+    
+    return df, features
+
+
+
+def add_records(df: pd.DataFrame, features: list) -> Tuple[pd.DataFrame, list]:
+    """Add columns for players' records.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing match data.
+        features (list): List to store feature names.
+
+    Returns:
+        Tuple[pd.DataFrame, list]: DataFrame with added consecutive wins/losses columns and updated features list.
+    """
+    begin_time = datetime.now()
+
+    log.print_log(LogLevel.INFO, "Adding players' records...")
+
+    # Initialize dictionary to store player's records
+    records = {}
+
+    # Initialize 'rank_evol' with 0
+    df['record_p1'] = 0
+    df['record_p2'] = 0
+
+    # Iterate over rows
+    for index, row in df.iterrows():
+        winner = row['winner']
+        loser = row['loser']
+
+        # Update DataFrame with consecutive wins and losses
+        if row['winner_is_p1'] == 1:   
+
+            # if player in records
+            if records.get(winner) != None:
+  
+                # Update df
+                df.at[index, 'record_p1'] = records[winner]
+
+                # Update p1 records
+                records[winner] = records[winner] + 1
+
+            else:
+                # Update p1 records
+                records[winner] = 1
+
+            # if player in records
+            if records.get(loser) != None:
+
+                # Update df
+                df.at[index, 'record_p2'] = records[loser]
+
+                # Update p2 records
+                records[loser] = records[loser] - 1
+
+            else:
+                # Update p1 records
+                records[loser] = -1
+
+        else:  
+
+            # if player in records
+            if records.get(winner) != None:
+  
+                # Update df
+                df.at[index, 'record_p2'] = records[winner]
+
+                # Update p1 records
+                records[winner] = records[winner] + 1
+
+            else:
+                # Update p1 records
+                records[winner] = 1
+
+            # if player in records
+            if records.get(loser) != None:
+
+                # Update df
+                df.at[index, 'record_p1'] = records[loser]
+
+                # Update p2 records
+                records[loser] = records[loser] - 1
+
+            else:
+                # Update p1 records
+                records[loser] = -1
+ 
+    # Convert the columns to numeric
+    cols = ['rank_evol_p1', 'rank_evol_p2']
+    for col in cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    features.extend(cols)
+    end_time = datetime.now()
+    log.print_log(LogLevel.INFO, f" -> Added players' records. ({(end_time-begin_time).total_seconds()})")
+    
+    return df, features
+
