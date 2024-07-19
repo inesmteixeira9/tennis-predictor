@@ -43,7 +43,7 @@ def visualize_pd_series(df: pd.DataFrame, features: list, skew_threshold: float 
         cols = 3  # Number of columns for subplots
         rows = (num_features + cols - 1) // cols  # Calculate rows needed
 
-        fig, axs = plt.subplots(rows, cols, figsize=(15, rows * 5))
+        fig, axs = plt.subplots(rows, cols, figsize=(15, rows * 4))
 
         # Flatten the array of axes for easy iteration
         axs = axs.flatten()

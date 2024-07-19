@@ -416,6 +416,29 @@ def add_rank_evolution(df: pd.DataFrame, features: list) -> Tuple[pd.DataFrame, 
     return df, features
 
 
+def add_rank_combined(df: pd.DataFrame, features: list) -> Tuple[pd.DataFrame, list]:
+    """Add columns for the combined rankings and rankings evolution.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing match data.
+        features (list): List to store feature names.
+
+    Returns:
+        Tuple[pd.DataFrame, list]: DataFrame with added combined rankings and updated features list.
+    """
+    begin_time = datetime.now()
+
+    log.print_log(LogLevel.INFO, "Adding combined rankings...")
+
+    df['rank_combined'] = - df['rank_p1'] + df['rank_p2'] + df['rank_evol_p1'] - df['rank_evol_p2']
+    
+    features.extend(['rank_combined'])
+    end_time = datetime.now()
+    log.print_log(LogLevel.INFO, f" -> Added combined rankings. ({(end_time-begin_time).total_seconds()})")
+    
+    return df, features
+
+
 
 def add_records(df: pd.DataFrame, features: list) -> Tuple[pd.DataFrame, list]:
     """Add columns for players' records.
