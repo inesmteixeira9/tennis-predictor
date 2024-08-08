@@ -2,6 +2,9 @@ import os
 import glob
 import pandas as pd
 import pickle
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+
 from app.libs.monitoring import log, LogLevel
 import sys
 current_dir = os.getcwd()
@@ -204,6 +207,54 @@ def format_data(df: pd.DataFrame, schema: dict) -> pd.DataFrame:
     except Exception as e:
         log.print_log(LogLevel.ERROR, f"Error formatting data: {e}")
         return df
+
+
+def split_data(X, y, train_size, test_size, cv=False):
+    """Split data into training, testing, and optionally validation sets.
+
+    Args:
+        X (array-like): Feature data.
+        y (array-like): Labels.
+        train_size (float): Proportion of the data to be used for training (between 0 and 1).
+        test_size (float): Proportion of the data to be used for testing (between 0 and 1).
+        cv (bool): If True, split data into training and testing sets only. 
+                   If False, split data into training, validation, and testing sets.
+
+    Raises:
+        ValueError: If train_size + test_size > 1 or if train_size or test_size are not in (0,1).
+
+    Returns:
+        tuple: If cv is True, returns (X_train, X_test, y_train, y_test).
+               If cv is False, returns (X_train, X_val, X_test, y_train, y_val, y_test).
+    """
+    if cv == True: 
+        # Split data into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+        log.print_log(LogLevel.INFO, f"Splitting data randomly into a training ({train_size * 100}%) and a testing ({test_size * 100}%) datasets.")
+        return X_train, X_test, y_train, y_test
+    else:
+        # define validation size
+        temp_size = 1 - train_size
+        test_val_ratio = test_size / temp_size
+        
+        # Split data into training, validation and testing sets
+        X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=temp_size, random_state=42)
+        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=test_val_ratio, random_state=42)
+        log.print_log(LogLevel.INFO, f"Splitting data randomly into a training ({train_size * 100}%), a validation ({round(1 - train_size - test_size, 2) * 100}%) and a testing ({test_size * 100}%) datasets.")
+        return X_train, X_val, X_test, y_train, y_val, y_test
+
+
+
+def scaler_data(X_train, X_val, X_test):
+    # Initialize the scaler and fit it to the training data
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    X_train_scaled = scaler.fit_transform(X_train)
+
+    # Use the same scaler to transform val and test data
+    X_val_scaled = scaler.transform(X_val)
+    X_test_scaled = scaler.transform(X_test)
+
+    return X_train_scaled, X_val_scaled, X_test_scaled
 
 
 def save_data(data: pd.DataFrame, file_name: str, path: str):
