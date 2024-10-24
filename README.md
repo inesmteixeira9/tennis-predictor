@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-This project aims to provide betting recommendations for tennis matches based on historical match data. By analyzing various features such as player rankings, head-to-head records, surface type, and recent performance, the model predicts the outcome of tennis matches and suggests betting strategies to maximize profit.
+This project aims to provide betting recommendations for tennis matches based on historical match data. By analyzing various features such as player rankings, head-to-head records, surface type, and recent performance, the recommendation system returns the predicted outcome of a tennis match, the level of confidence of the prediction and a suggestion based on the odds.
 
-The proposed solution addresses a classification problem aimed at determining whether the player with the lowest odd is the winner in a tennis match. It involves building and transforming features from the dataset, selecting the most important features, applying a logistic regression model, optimizing hyperparameters through cross-validation by maximizing the betting profit.
+The proposed solution addresses a regression problem aimed at determining whether the player with the lowest odd is the winner in a tennis match. It involves building and transforming features from the dataset, selecting the most important features, applying a logistic regression model, optimizing hyperparameters through cross-validation by maximizing the betting profit.
 
 ## Table of Contents
 - [Project Overview](#project-overview)
@@ -58,12 +58,12 @@ tennis-betting-recommendation-system/
 │   │   ├── data_utils.py
 │   │   ├── eda_tools.py
 │   │   └── monitoring.py
-│   ├── Makefile
 │   └── requirements.txt
 │
 └── notebooks/
     ├── 1.0-data-exploration.ipynb
-    └── 2.0-feature-engineering.ipynb
+    ├── 2.0-feature-engineering.ipynb
+    └── 3.0-logistic-regression.ipynb
 
 ```
 
@@ -74,62 +74,21 @@ To set up the project, follow these steps:
 1. Clone the repository:
     ```sh
     git clone https://github.com/inesmteixeira/tennis-predictor.git
-    cd tennis-predictor
     ```
 
 2. Create and activate a virtual environment:
     ```sh
     python3 -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
     ```
+    On Linux, use `source venv/bin/activate`  
+    
+    On Windows, use `venv\Scripts\activate`
+    
 
 3. Install the required packages:
     ```sh
     pip install -r requirements.txt
     ```
-
-## Usage
-
-To run the FastAPI server and use the endpoints, follow these steps:
-
-1. Start the FastAPI server:
-    ```sh
-    uvicorn app.server:app --reload
-    ```
-
-2. Use the following endpoints to interact with the system:
-
-## API Endpoints
-
-### Upload CSV File
-
-- **Endpoint**: `/extract/csvfiles`
-- **Method**: POST
-- **Description**: Upload a CSV file containing raw match data.
-- **Parameters**: 
-  - `csv_file`: The CSV file to upload.
-
-### Extract Features
-
-- **Endpoint**: `/get_features`
-- **Method**: GET
-- **Description**: Extract features from the raw data and prepare it for training.
-
-### Train Model
-
-- **Endpoint**: `/train`
-- **Method**: GET
-- **Description**: Train the model using the processed data.
-- **Parameters**: 
-  - `data`: JSON object containing the input data required for training.
-
-### Predict Outcome
-
-- **Endpoint**: `/predict`
-- **Method**: GET
-- **Description**: Predict the outcome of a tennis match.
-- **Parameters**: 
-  - `data`: JSON object containing the input data required for prediction.
 
 ## Features
 ### Data Transformation

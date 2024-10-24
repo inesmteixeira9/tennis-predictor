@@ -100,6 +100,8 @@ def read_data(data_path: str, file_name: str = None) -> pd.DataFrame:
             log.print_log(LogLevel.ERROR, f"Unsupported file type for {file_path}")
             return pd.DataFrame()
 
+    dataset = dataset.drop(columns=[col for col in dataset.columns if col.startswith('Unnamed')])
+
     log.print_log(LogLevel.INFO, f"Shape of the dataset: {dataset.shape}")
 
     return dataset
