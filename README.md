@@ -41,30 +41,75 @@ The project directory structure is organized as follows:
 
 
 ```python
-tennis-betting-recommendation-system/
-│
-├── data/
-│   ├── raw/
-│   │   ├── atp/
-│   │   └── wta/
-│   ├── interim/
-│   └── processed/
-│
-├── app/
-│   ├── main.py
-│   ├── build_features.py
-│   ├── config.py
-│   ├── libs/
-│   │   ├── data_utils.py
-│   │   ├── eda_tools.py
-│   │   └── monitoring.py
-│   └── requirements.txt
-│
-└── notebooks/
-    ├── 1.0-data-exploration.ipynb
-    ├── 2.0-feature-engineering.ipynb
-    └── 3.0-logistic-regression.ipynb
-
+└── 📁tennis-predictor
+    └── 📁data
+        └── 📁interim
+            └── cleaned_data.csv
+            └── features.csv
+        └── 📁processed
+            └── features.csv
+            └── X_test.csv
+            └── X_train.csv
+            └── X_val.csv
+            └── y_test.csv
+            └── y_train.csv
+            └── y_val.csv
+        └── 📁raw
+            └── 📁atp
+                └── 2002.csv
+                └── 2003.csv
+                └── 2004.csv
+                └── 2005.csv
+                └── 2006.csv
+                └── 2007.csv
+                └── 2009.csv
+                └── 2010.csv
+                └── 2012.csv
+                └── 2013.csv
+                └── 2015.csv
+                └── 2016.csv
+                └── 2017.csv
+                └── 2018.csv
+            └── 📁wta
+                └── 2007_2.csv
+                └── 2008_2.csv
+                └── 2009.csv
+    └── 📁libs
+        └── __init__.py
+        └── data_utils.py
+        └── eda_tools.py
+    └── 📁logs
+        └── dev.log
+        └── prd.log
+    └── 📁models
+        └── logistic_model.joblib
+    └── 📁notebooks
+        └── 1.0-data-exploration.ipynb
+        └── 2.0-feature-engineering.ipynb
+        └── 3.0-model-selection.ipynb
+    └── 📁pipeline
+        └── 📁features
+            └── __init__.py
+            └── build_features.py
+            └── h2h_features.py
+            └── odds_features.py
+            └── rank_features.py
+            └── results_features.py
+            └── surface_features.py
+            └── transformations.py
+        └── 📁models
+            └── logistic_regression.py
+        └── __init__.py
+        └── clean_data.py
+        └── predict.py
+    └── 📁templates
+        └── index.html
+    └── .gitignore
+    └── app.py
+    └── main.py
+    └── params.yaml
+    └── README.md
+    └── requirements.txt
 ```
 
 ## Installation
