@@ -148,8 +148,13 @@ The transform_data.py script includes the following functions to preprocess and 
 - **OHE_surface**: One-hot encodes the surface type.
 - **add_consecutive_wins_and_losses**: Calculates consecutive wins and losses for each player.
 
-### Model Training and Prediction
-- **main.py**: The entry point for the project. This script loads the data, transforms it using the functions in transform_data.py, and generates betting recommendations based on the model's predictions.
+
+## App Interface Visualization
+
+Below is a mock visualization of the application interface for entering player statistics and visualizing match predictions.  
+
+
+<img src="./AppInterface.png" alt="App Interface" width="800">
 
 ## Contributing
 
