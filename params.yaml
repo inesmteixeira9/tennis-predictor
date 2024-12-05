@@ -1,0 +1,68 @@
+env: dev
+
+data_path:
+  raw:
+    root_dir: 'data/raw/'
+    atp: 'atp/'
+    wta: 'wta/'
+  interim:
+    root_dir: 'data/interim/'
+  processed:
+    root_dir: 'data/processed/'
+    X_train: 'X_train.csv'
+    X_test: 'X_test.csv'
+    y_train: 'y_train.csv'
+    y_test: 'y_test.csv'
+    X_val: 'X_val.csv'
+    y_val: 'y_val.csv'
+
+data_schemas:
+  raw:
+    date: 'datetime64'
+    winner: 'string'
+    loser: 'string'
+    wrank: 'int64'
+    lrank: 'int64'
+    b365w: 'float64'
+    b365l: 'float64'
+    surface: 'string'
+
+  features:
+    rank_p1: 'int64'
+    rank_p2: 'int64'
+    rank_diff: 'int64'
+    rank_ratio: 'float64'
+    odd_diff: 'float64'
+    odd_ratio: 'float64'
+    surface_Clay: 'int64'
+    surface_Hard: 'int64'
+    surface_Grass: 'int64'
+    h2h: 'int64'
+    consecutive_wins_p1: 'int64' 
+    consecutive_wins_p2: 'int64'
+    consecutive_losses_p1: 'int64'
+    consecutive_losses_p2: 'int64'
+    consecutive_results: 'int64'
+    rank_evol_p1: 'int64'
+    rank_evol_p2: 'int64'
+    record_p1: 'int64'
+    record_p2: 'int64'
+    rank_combined: 'int64'
+
+logistic_regression:
+  model_path: 'models/logistic_model.joblib'
+  penalty: 'l2'
+  dual: False
+  tol: 0.0001
+  C: 5
+  fit_intercept: True
+  intercept_scaling: 1
+  class_weight:
+  random_state: 1
+  solver: 'newton-cg'
+  max_iter: 500
+  multi_class: 'deprecated'
+  verbose: 0
+  warm_start: False
+  n_jobs: -1
+  l1_ratio:
